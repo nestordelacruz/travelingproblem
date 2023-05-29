@@ -29,11 +29,7 @@ def graph(vertices):
 
     return graph
 
-
-generated_graph = graph(10)
-print(generated_graph)
-
-def nearest_neighboor(graph):
+def nearest_neighbor(graph):
     # Iniciamos en cualquier nodo, en este caso supongamos el primero del grafo generado
     startingPoint = 0
 
@@ -74,5 +70,53 @@ def nearest_neighboor(graph):
     print("------ NEAREST NEIGHBOOR HEURISTIC ------")
     print("CAMINO ENCONTRADO: ", path)
     print("COSTO TOTAL DE LA RUTA: ", totalCost)
+    return path
+    
+def optimize_path(graph, path):
+    best_path = path  # Almacenamos el mejor camino encontrado hasta el momento
+    best_cost = calculate_path_cost(graph, best_path)  # Calculamos el costo del mejor camino
+    improved = True  # Bandera para indicar si se ha realizado una mejora
 
-nearest_neighboor(generated_graph)
+    while improved:  # Repetimos hasta que no se pueda realizar más mejoras
+        improved = False  # Inicialmente no se ha realizado ninguna mejora
+
+        # Iteramos sobre todos los pares de nodos i y j en el camino
+        for i in range(1, len(path) - 2):
+            for j in range(i + 1, len(path)):
+                if j - i == 1:
+                    continue  # No se realiza la mejora si los nodos son adyacentes
+
+                new_path = path[:]  # Creamos una copia del camino actual
+                new_path[i:j] = path[j - 1:i - 1:-1]  # Invertimos el subsegmento entre i y j
+
+                new_cost = calculate_path_cost(graph, new_path)  # Calcular el costo del nuevo camino
+
+                if new_cost < best_cost:  # Si el costo es menor que el mejor costo actual
+                    best_path = new_path  # Actualizamos el mejor camino
+                    best_cost = new_cost  # Actualizamos el mejor costo
+                    improved = True  # Indicamos que se ha realizado una mejora
+
+        path = best_path  # Actualizamos el camino actual con el mejor camino encontrado en esta iteración
+    print("------ 2-OPT OPTIMIZATION ------")
+    print("CAMINO OPTIMIZADO: ", best_path)
+    print("COSTO OPTIMIZADO: ", calculate_path_cost(graph, best_path))
+    return best_path  # Devolvemos el mejor camino encontrado
+
+def calculate_path_cost(graph, path):
+    total_cost = 0
+    for i in range(len(path) - 1):
+        start = path[i]
+        end = path[i + 1]
+        total_cost += graph[start, end]
+
+    return total_cost
+
+def main():
+    num_of_cities = 30
+    generated_graph = graph(num_of_cities)
+    print(generated_graph)
+    initial_path = nearest_neighbor(generated_graph)
+    optimized_path = optimize_path(generated_graph, initial_path)
+
+
+main()
