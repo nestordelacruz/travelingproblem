@@ -1,5 +1,8 @@
 import random
 import numpy as np
+import networkx as nx
+import matplotlib.pyplot as plt
+
 
 # Generacion de un grafo simetrico y que sigue Triangle Inequality
 def graph(vertices):
@@ -37,12 +40,12 @@ def nearest_neighbor(graph):
     path = [startingPoint]
 
     counter = 1
-    # Crear una lista de nodos que pueden ser visitados
+    # Crear una lista de nodos que pueden ser visitados 
     nodes = list(range(len(graph[0])))
     # Variable de costo que se actualiza con cada iteracion para determinar el costo total de la ruta encontrada
     totalCost = 0
     while(counter < len(graph[0])):
-        # Excluir todos los nodos visitados y el nodo raiz
+        # Excluir todos los nodos visitados y el nodo raiz 
         nodes = [x for x in nodes if x != startingPoint]
 
         # Agarrar el valor maximo como el minimo de forma inicial
@@ -111,12 +114,93 @@ def calculate_path_cost(graph, path):
 
     return total_cost
 
+def simulated_annealing_path(graph, path):
+    initial_path, initial_index = path, 0
+
+    # Todos estos son modificables y afectan el comportamiento del resultado
+    initial_temp = 120
+    final_temp = .2
+    alpha = 0.9
+    iteraciones = 1000
+
+    current_temp = initial_temp
+
+    # Consideramos la solucion inicial como la mejor solucion (en caso de no encontrar otra)
+    best_path = initial_path
+    best_cost = calculate_path_cost(graph, initial_path)
+
+    while current_temp > final_temp:
+        # Obtener un nodo aleatorio del camino para explorar posibles caminos segun la probabilidad
+
+        for i in range(iteraciones):
+            # Creamos una copia de nuestro camino encontrado y obtenemos dos indices aleatorios
+            copy_path = initial_path.copy()
+            randIndexI = random.randint(0, len(graph[0]) - 1)
+            randIndexJ = random.randint(0, len(graph[0]) - 1)
+            # Crear nuevo camino permutando
+            copy_path[randIndexI], copy_path[randIndexJ] = copy_path[randIndexJ], copy_path[randIndexI] 
+            
+            # Calculamos el costo de nuestro nuevo camino y revisamos la diferencia entre ambos para revisar si es mejor
+            new_cost = calculate_path_cost(graph, copy_path)
+            cost_difference = best_cost - new_cost
+
+            # Si el costo es mejor entonces aceptamos la solucion nueva
+            if cost_difference > 0:
+                best_path = copy_path
+                best_cost = new_cost # Guardamos la mejor energia, es decir el costo
+            else: 
+                # Calcular la probabilidad para ver si dicho camino que no es mejor puede seguir siendo aceptado
+                probability_to_accept = np.exp(-(new_cost-best_cost)/current_temp)
+                r = np.random.uniform()
+                
+                # Si r es menor a la probabilidad calculada entonces si aceptamos dicho camino para explorarlo
+                if r < probability_to_accept:
+                    best_path = copy_path
+                    best_cost = new_cost
+
+        current_temp = current_temp*alpha
+
+    
+    print("------ SIMULATED ANNEALING ------")
+    print("CAMINO OPTIMIZADO: ", best_path)
+    print("COSTO OPTIMIZADO: ", calculate_path_cost(graph, best_path))
+
+    return best_path
+
+
+def plot_graph(path_list, G, with_weights=True):
+    edges = [(a,b) for a,b in zip(path_list, path_list[1:])]
+    g = nx.Graph(G)
+    coordinates = nx.circular_layout(g)
+    nx.draw(g, coordinates, with_labels = True)
+    nx.draw_networkx_nodes(g, coordinates, nodelist=path_list, node_color = 'g' )
+    nx.draw_networkx_edges(g, coordinates,edgelist=edges,edge_color='b',width=2)
+    if with_weights:
+        edge_labels = nx.get_edge_attributes(g, 'weight')
+        nx.draw_networkx_edge_labels(g, coordinates, edge_labels=edge_labels, font_size=6)
+    plt.axis('equal')
+    plt.show()
+
 def main():
-    num_of_cities = 30
+    num_of_cities = 50
+    show_weights = False
+
+    # Grafo inicial sin caminos (estructura)
     generated_graph = graph(num_of_cities)
     print(generated_graph)
+
+    # Camino encontrado por NN
     initial_path = nearest_neighbor(generated_graph)
+    #plot_graph(initial_path, generated_graph, with_weights=show_weights)
+
+    # Camino encontrado por 2-opt
     optimized_path = optimize_path(generated_graph, initial_path)
+    #plot_graph(optimized_path, generated_graph, with_weights=show_weights)
+
+    sa_path = simulated_annealing_path(generated_graph, optimized_path)
+    #plot_graph(sa_path, generated_graph, with_weights=show_weights)
+
+
 
 
 main()
